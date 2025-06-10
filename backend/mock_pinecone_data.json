@@ -1,0 +1,28 @@
+{
+  "persona_6025fc73-5182-46e1-9350-a4b4230e784c": {
+    "persona_6025fc73-5182-46e1-9350-a4b4230e784c_chunk_0": {
+      "values": [-0.002291016513481736, -0.013651116751134396, -0.03830697387456894, 0.016913237050175667, -0.014777792617678642, -0.03222816437482834, -0.019625118002295494, 0.03925023600459099, 0.00475889490917325, 0.0029624365270137787],
+      "metadata": {
+        "text": "The Value Stack Formula by Alex Hormozi\n\nThe Value Stack is a powerful framework for creating irresistible offers that convert prospects into customers. Here's the complete formula:\n\n1. Dream Outcome\n   - What is the ultimate result your prospect wants?\n   - Paint a vivid picture of their ideal future state\n   - Make it tangible and emotionally compelling\n\n2. Perceived Likelihood of Achievement\n   - How certain are they that YOUR solution will get them there?\n   - Use proof elements: testimonials, case studies, guarantees\n   - Remove risk and uncertainty\n\n3. Time Delay\n   - How quickly can they achieve the dream outcome?\n   - Faster = more valuable\n   - Instant gratification beats delayed results\n\n4. Effort and Sacrifice\n   - How much work do they need to put in?\n   - What do they need to give up?\n   - Less effort + less sacrifice = higher value\n\nThe Value Equation:\nValue = (Dream Outcome × Perceived Likelihood) / (Time Delay × Effort & Sacrifice)\n\nTo create a Grand Slam Offer:\n- Maxim",
+        "chunk_id": 0,
+        "source": "test_upload.txt",
+        "char_start": 0,
+        "char_end": 1399,
+        "persona_id": "9809a650-0129-43f8-9d3a-40e2ec5eae37"
+      }
+    }
+  },
+  "persona_550e8400-e29b-41d4-a716-446655440001": {
+    "test_vector_1": {
+      "values": [-0.002291016513481736, -0.013651116751134396, -0.03830697387456894, 0.016913237050175667, -0.014777792617678642, -0.03222816437482834, -0.019625118002295494, 0.03925023600459099, 0.00475889490917325, 0.0029624365270137787],
+      "metadata": {
+        "text": "Hello! I'm a test persona that can help you with questions about AI and technology. I'm knowledgeable about machine learning, programming, and software development. I'm here to assist you with your queries and provide helpful information.",
+        "chunk_id": 0,
+        "source": "test_persona.txt",
+        "char_start": 0,
+        "char_end": 200,
+        "persona_id": "550e8400-e29b-41d4-a716-446655440001"
+      }
+    }
+  }
+}
