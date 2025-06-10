@@ -73,7 +73,7 @@ export function UploadBox({ onUploadComplete }: UploadBoxProps) {
       const response = await api.uploadPersona(
         name,
         description,
-        uploadMode === 'file' ? file : undefined,
+        uploadMode === 'file' ? file! : undefined,
         uploadMode === 'text' ? text : undefined
       );
 
