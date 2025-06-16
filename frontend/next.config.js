@@ -10,6 +10,14 @@ module.exports = {
         source: '/api/:path*',
         destination: `${dest}/:path*`,
       },
+      {
+        source: '/api/:path*/',
+        destination: `${dest}/:path*/`,
+      },
     ];
+  },
+  // Ensure dev server works on any port
+  devIndicators: {
+    buildActivity: false,
   },
 };

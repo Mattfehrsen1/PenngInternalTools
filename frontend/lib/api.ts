@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 console.log('🔧 API_URL configured as:', API_URL);
 
@@ -118,7 +118,7 @@ class ApiClient {
       formData.append('text', text);
     }
 
-    const response = await fetch(`${API_URL}/persona/upload`, {
+    const response = await fetch(`${API_URL}/personas/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.token}`,
@@ -135,7 +135,7 @@ class ApiClient {
   }
 
   async listPersonas(): Promise<{ personas: Persona[] }> {
-    const response = await fetch(`${API_URL}/persona/list`, {
+    const response = await fetch(`${API_URL}/personas/list`, {
       headers: this.getHeaders(),
     });
 
@@ -147,7 +147,7 @@ class ApiClient {
   }
 
   async getPersona(personaId: string): Promise<Persona> {
-    const response = await fetch(`${API_URL}/persona/${personaId}`, {
+    const response = await fetch(`${API_URL}/personas/${personaId}`, {
       headers: this.getHeaders(),
     });
 
@@ -188,6 +188,7 @@ class ApiClient {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentEvent = '';
 
       async function readStream() {
         if (!reader) return;
@@ -221,29 +222,18 @@ class ApiClient {
 
       function processLine(line: string) {
         const trimmedLine = line.trim();
-        if (!trimmedLine || trimmedLine === '') return;
+        if (!trimmedLine) return;
         
-        if (trimmedLine.startsWith('event:')) {
-          const event = trimmedLine.substring(6).trim();
-          return; // Store event for next data line
-        }
-        
-        if (trimmedLine.startsWith('data:')) {
-          const dataStr = trimmedLine.substring(5).trim();
-          if (dataStr === '[DONE]') {
-            onMessage('done', {});
-            return;
-          }
+        if (trimmedLine.startsWith('event: ')) {
+          currentEvent = trimmedLine.slice(7).trim();
+        } else if (trimmedLine.startsWith('data: ')) {
+          const dataStr = trimmedLine.slice(6).trim();
           
           try {
             const data = JSON.parse(dataStr);
-            // Determine event type from data structure
-            if ('token' in data) {
-              onMessage('token', data);
-            } else if ('citations' in data) {
-              onMessage('citations', data);
-            } else if ('error' in data) {
-              onMessage('error', data);
+            if (currentEvent) {
+              onMessage(currentEvent, data);
+              currentEvent = ''; // Reset after processing
             }
           } catch (e) {
             console.error('Failed to parse SSE data:', e);

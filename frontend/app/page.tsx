@@ -1,140 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const [hasToken, setHasToken] = useState(false);
-  const [loading, setLoading] = useState(true);
+export default function HomePage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check for token on client side
+    console.log('🏠 Root page: Checking authentication...');
+    
     try {
-      if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('auth_token');
-        setHasToken(!!token);
+      const token = localStorage.getItem('auth_token');
+      console.log('🔍 Token found:', !!token);
+      
+      if (!token) {
+        console.log('❌ No token, redirecting to login');
+        router.push('/login');
+      } else {
+        console.log('✅ Token found, redirecting to brain');
+        router.push('/brain');
       }
     } catch (error) {
-      console.error('Error checking authentication:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ Error checking auth:', error);
+      router.push('/login');
     }
-  }, []);
+    
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.log('⏰ Timeout reached, forcing redirect to login');
+      router.push('/login');
+    }, 3000);
 
+    return () => clearTimeout(timeout);
+  }, [router]);
+
+  // Show loading state while checking/redirecting
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#f3f4f6',
-      fontFamily: 'sans-serif'
-    }}>
-      <div style={{
-        background: 'white',
-        padding: '2rem',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        textAlign: 'center',
-        maxWidth: '400px'
-      }}>
-        <h1 style={{ margin: '0 0 1rem 0', fontSize: '2rem' }}>🤖 Clone Advisor</h1>
-        <p style={{ margin: '0 0 1rem 0', color: '#6b7280' }}>MVP is running!</p>
-        
-        {loading ? (
-          <p>Checking authentication status...</p>
-        ) : (
-          <>
-            <div style={{
-              padding: '0.75rem',
-              borderRadius: '4px',
-              backgroundColor: hasToken ? '#d1fae5' : '#fee2e2',
-              marginBottom: '1rem'
-            }}>
-              <p style={{ margin: '0', fontSize: '0.875rem' }}>
-                Authentication Status: {hasToken ? '✅ Logged In' : '❌ Not Logged In'}
-              </p>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-              {!hasToken ? (
-                <button 
-                  onClick={() => window.location.href = '/login'}
-                  style={{
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '1rem'
-                  }}
-                >
-                  Go to Login
-                </button>
-              ) : (
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button 
-                    onClick={() => window.location.href = '/chat'}
-                    style={{
-                      background: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    Go to Chat
-                  </button>
-                  <button 
-                    onClick={() => window.location.href = '/basicchat'}
-                    style={{
-                      background: '#059669',
-                      color: 'white',
-                      border: 'none',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    Go to Basic Chat
-                  </button>
-                  <button 
-                    onClick={() => window.location.href = '/fullchat'}
-                    style={{
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    Go to Full Chat (MVP)
-                  </button>
-                </div>
-              )}
-              
-              <button 
-                onClick={() => window.location.href = '/debug'}
-                style={{
-                  background: '#6366f1',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '1rem'
-                }}
-              >
-                Debug Tools
-              </button>
-            </div>
-          </>
-        )}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Checking authentication...</p>
+        <p className="mt-2 text-sm text-gray-500">If this takes too long, click <a href="/login" className="text-blue-600 underline">here</a></p>
       </div>
     </div>
   );

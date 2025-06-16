@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api';
+import { api, API_URL } from '../lib/api';
 
 interface UploadBoxProps {
   onUploadComplete: (personaId: string) => void;
@@ -70,15 +70,23 @@ export function UploadBox({ onUploadComplete }: UploadBoxProps) {
     setProgress(20);
 
     try {
-      const response = await api.uploadPersona(
-        name,
-        description,
-        uploadMode === 'file' ? file! : undefined,
-        uploadMode === 'text' ? text : undefined
-      );
+      const response = await fetch(`${API_URL}/persona/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          file: uploadMode === 'file' ? file : undefined,
+          text: uploadMode === 'text' ? text : undefined,
+        }),
+      });
+
+      const data = await response.json();
 
       setProgress(100);
-      onUploadComplete(response.persona_id);
+      onUploadComplete(data.persona_id);
       
       // Reset form
       setFile(null);

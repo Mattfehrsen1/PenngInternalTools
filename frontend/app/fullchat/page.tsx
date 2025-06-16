@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_URL } from '@/lib/api';
 import UploadBox from '../../components/UploadBox';
+import PersonaManager from '../../components/PersonaManager';
+// MultiFileUpload component removed - now using dedicated /upload page
 
 interface Message {
   id: string;
@@ -16,6 +19,8 @@ interface Persona {
   name: string;
   description?: string;
   chunks: number;
+  created_at?: string;
+  source_type?: string;
 }
 
 export default function FullChatPage() {
@@ -26,6 +31,7 @@ export default function FullChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUpload, setShowUpload] = useState(true);
+  const [showMultiUpload, setShowMultiUpload] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('auto');
 
@@ -35,6 +41,7 @@ export default function FullChatPage() {
       if (typeof window !== 'undefined') {
         const storedToken = localStorage.getItem('auth_token');
         console.log('🔍 FullChat page - checking token:', storedToken ? 'found' : 'not found');
+        console.log('🔍 FullChat page - token preview:', storedToken ? storedToken.substring(0, 20) + '...' : 'none');
         
         if (!storedToken) {
           console.log('❌ No token found, redirecting to login');
@@ -53,18 +60,37 @@ export default function FullChatPage() {
 
   const loadPersonas = async (authToken: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/persona/list', {
+      console.log('📋 Loading personas with token:', authToken ? authToken.substring(0, 20) + '...' : 'none');
+      
+      const response = await fetch(`${API_URL}/personas/list`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
       });
 
+      console.log('📋 Personas response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        setPersonas(data.personas || []);
-        if (data.personas && data.personas.length > 0) {
+        console.log('📋 Personas loaded:', data.personas?.length || 0);
+        
+        // Map the backend data to include all needed fields
+        const mappedPersonas = (data.personas || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          chunks: p.chunk_count || 0,
+          created_at: p.created_at,
+          source_type: p.source_type,
+        }));
+        
+        setPersonas(mappedPersonas);
+        if (mappedPersonas.length > 0) {
           setShowUpload(false);
         }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to load personas:', response.status, errorText);
       }
     } catch (error) {
       console.error('Error loading personas:', error);
@@ -125,7 +151,7 @@ export default function FullChatPage() {
       setMessages(prev => [...prev, assistantMessage]);
       
       // Send request to chat endpoint
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -143,56 +169,69 @@ export default function FullChatPage() {
         throw new Error(`Failed to send message: ${response.status}`);
       }
 
-      // Process SSE stream
+      // Process SSE stream with simplified logic
       const reader = response.body?.getReader();
       if (!reader) {
         throw new Error('Response body reader could not be created');
       }
       
       const decoder = new TextDecoder();
+      let buffer = '';
       let currentEvent = '';
-      let currentData = '';
       
       // Process the stream
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
         
         for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ')) {
-            currentData = line.slice(6);
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+          
+          if (trimmedLine.startsWith('event: ')) {
+            currentEvent = trimmedLine.slice(7).trim();
+          } else if (trimmedLine.startsWith('data: ')) {
+            const dataStr = trimmedLine.slice(6).trim();
             
-            // Process complete event when we have both event type and data
-            if (currentEvent && currentData) {
-              try {
-                const data = JSON.parse(currentData);
-                
-                console.log(`Received ${currentEvent} event:`, data);
-                
-                if (currentEvent === 'citations') {
-                  assistantMessage.citations = data;
-                } else if (currentEvent === 'token') {
-                  if (data.token) {
-                    assistantMessage.content += data.token;
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === assistantMessage.id ? { ...assistantMessage } : msg
-                    ));
-                  }
-                } else if (currentEvent === 'done') {
-                  console.log('Chat completed with', data.tokens || 'unknown', 'tokens');
+            try {
+              const data = JSON.parse(dataStr);
+              
+              console.log(`Received ${currentEvent} event:`, data);
+              
+              if (currentEvent === 'citations') {
+                // Backend sends citations as an array directly
+                assistantMessage.citations = data.map((citation: any, index: number) => 
+                  `[${index + 1}] ${citation.source}`
+                );
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessage.id ? { ...assistantMessage } : msg
+                ));
+              } else if (currentEvent === 'token') {
+                if (data.token) {
+                  assistantMessage.content += data.token;
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessage.id ? { ...assistantMessage } : msg
+                  ));
                 }
-                
-                // Reset after processing
-                currentEvent = '';
-                currentData = '';
-              } catch (e) {
-                console.error('Error parsing SSE data:', currentData, e);
+              } else if (currentEvent === 'done') {
+                console.log('Chat completed with', data.tokens || 'unknown', 'tokens');
+              } else if (currentEvent === 'error') {
+                setError(data.error || 'An error occurred');
+                setMessages(prev => prev.filter(msg => msg.id !== assistantMessage.id));
+                return;
               }
+              
+              // Reset event after processing
+              currentEvent = '';
+            } catch (e) {
+              console.error('Error parsing SSE data:', dataStr, e);
             }
           }
         }
@@ -200,6 +239,8 @@ export default function FullChatPage() {
     } catch (error) {
       console.error('Error sending message:', error);
       setError('Failed to send message. Please try again.');
+      // Remove the assistant message placeholder if there was an error
+      setMessages(prev => prev.filter(msg => msg.role !== 'assistant' || msg.content.trim() !== ''));
     } finally {
       setIsLoading(false);
     }
@@ -217,7 +258,51 @@ export default function FullChatPage() {
   const selectPersona = (persona: Persona) => {
     setSelectedPersona(persona);
     setMessages([]);
+    setError(null);
+  };
+
+  const handlePersonaUpdate = (updatedPersona: Persona) => {
+    setPersonas(prev => prev.map(p => 
+      p.id === updatedPersona.id ? updatedPersona : p
+    ));
+    
+    // Update selected persona if it was the one being edited
+    if (selectedPersona?.id === updatedPersona.id) {
+      setSelectedPersona(updatedPersona);
+    }
+  };
+
+  const handlePersonaDelete = (personaId: string) => {
+    setPersonas(prev => prev.filter(p => p.id !== personaId));
+    
+    // Clear selection if the deleted persona was selected
+    if (selectedPersona?.id === personaId) {
+      setSelectedPersona(null);
+      setMessages([]);
+    }
+    
+    // Show upload if no personas left
+    if (personas.length === 1) {
+      setShowUpload(true);
+    }
+  };
+
+  const handleShowMultiUpload = (personaId: string) => {
+    setShowMultiUpload(personaId);
     setShowUpload(false);
+  };
+
+  const handleMultiUploadComplete = (totalChunks: number) => {
+    // Reload personas to get updated chunk counts
+    if (token) {
+      loadPersonas(token);
+    }
+    setShowMultiUpload(null);
+    setError(null);
+  };
+
+  const handleMultiUploadError = (errorMessage: string) => {
+    setError(errorMessage);
   };
 
   return (
@@ -254,6 +339,19 @@ export default function FullChatPage() {
             </button>
           )}
           <button
+            onClick={() => window.location.href = '/upload'}
+            style={{
+              backgroundColor: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.25rem',
+              cursor: 'pointer'
+            }}
+          >
+            Bulk Upload
+          </button>
+          <button
             onClick={() => window.location.href = '/'}
             style={{
               backgroundColor: '#6b7280',
@@ -283,34 +381,18 @@ export default function FullChatPage() {
       </header>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar with personas */}
-        {personas.length > 0 && !showUpload && (
-          <div style={{ 
-            width: '250px',
-            backgroundColor: '#f9fafb',
-            borderRight: '1px solid #e5e7eb',
-            padding: '1rem',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{ margin: '0 0 1rem 0' }}>Your Personas</h3>
-            {personas.map(persona => (
-              <div
-                key={persona.id}
-                onClick={() => selectPersona(persona)}
-                style={{
-                  padding: '0.75rem',
-                  marginBottom: '0.5rem',
-                  borderRadius: '0.25rem',
-                  cursor: 'pointer',
-                  backgroundColor: selectedPersona?.id === persona.id ? '#dbeafe' : '#ffffff',
-                  border: selectedPersona?.id === persona.id ? '1px solid #3b82f6' : '1px solid #e5e7eb'
-                }}
-              >
-                <div style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{persona.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{persona.chunks} chunks</div>
-              </div>
-            ))}
-          </div>
+        {/* Enhanced Persona Manager */}
+        {personas.length > 0 && !showUpload && !showMultiUpload && (
+          <PersonaManager
+            personas={personas}
+            selectedPersona={selectedPersona}
+            onPersonaSelect={selectPersona}
+            onPersonaUpdate={handlePersonaUpdate}
+            onPersonaDelete={handlePersonaDelete}
+            onShowUpload={() => setShowUpload(true)}
+            onShowMultiUpload={handleShowMultiUpload}
+            token={token || ''}
+          />
         )}
 
         {/* Main content area */}
@@ -320,6 +402,7 @@ export default function FullChatPage() {
               <UploadBox 
                 onUploadSuccess={handleUploadSuccess}
                 onUploadError={handleUploadError}
+                token={token || undefined}
               />
               {error && (
                 <div style={{
@@ -335,6 +418,74 @@ export default function FullChatPage() {
                   {error}
                 </div>
               )}
+            </div>
+          ) : showMultiUpload ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: '2rem' }}>
+              <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                  <button
+                    onClick={() => setShowMultiUpload(null)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      fontSize: '1.5rem',
+                      cursor: 'pointer',
+                      marginRight: '1rem',
+                      color: '#6b7280',
+                      float: 'left'
+                    }}
+                  >
+                    ←
+                  </button>
+                  <h2 style={{ margin: 0, fontSize: '1.5rem' }}>
+                    Add Files to {personas.find(p => p.id === showMultiUpload)?.name}
+                  </h2>
+                </div>
+                
+                <div style={{ 
+                  backgroundColor: '#f0f9ff', 
+                  border: '2px dashed #3b82f6', 
+                  borderRadius: '0.5rem', 
+                  padding: '3rem 2rem',
+                  marginBottom: '2rem'
+                }}>
+                  <svg style={{ width: '4rem', height: '4rem', margin: '0 auto 1rem auto', color: '#3b82f6' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#1f2937' }}>Use the New Bulletproof Upload System</h3>
+                  <p style={{ margin: '0 0 2rem 0', color: '#6b7280' }}>
+                    We've built a much better upload experience with progress tracking, retry mechanisms, and support for larger files.
+                  </p>
+                  <button
+                    onClick={() => window.location.href = '/upload'}
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      padding: '1rem 2rem',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Go to Upload Page →
+                  </button>
+                </div>
+                
+                {error && (
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    padding: '1rem',
+                    borderRadius: '0.25rem',
+                    marginTop: '1rem',
+                  }}>
+                    {error}
+                  </div>
+                )}
+              </div>
             </div>
           ) : selectedPersona ? (
             <>

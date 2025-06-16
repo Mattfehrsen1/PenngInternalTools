@@ -1,147 +1,108 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function DebugPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [message, setMessage] = useState('Checking token...');
+  const [filesResult, setFilesResult] = useState<string>('');
+  const [chatResult, setChatResult] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const testFiles = async () => {
+    setLoading(true);
     try {
-      // Get token from localStorage
-      const storedToken = localStorage.getItem('auth_token');
-      setToken(storedToken);
-      
-      if (storedToken) {
-        setMessage('Token found! Authentication should work.');
-      } else {
-        setMessage('No token found. You need to login first.');
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/personas/cd35a4a9-31ad-44f5-9de7-cc7dc3196541/files', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setFilesResult(JSON.stringify(data, null, 2));
+    } catch (error) {
+      setFilesResult(`Error: ${error}`);
+    }
+    setLoading(false);
+  };
+
+  const testChat = async () => {
+    setLoading(true);
+    setChatResult('');
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify({
+          persona_id: 'cd35a4a9-31ad-44f5-9de7-cc7dc3196541',
+          question: 'hello test',
+          model: 'gpt-4o',
+          k: 3
+        }),
+      });
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let result = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          result += chunk;
+          setChatResult(result);
+        }
       }
     } catch (error) {
-      setMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      setChatResult(`Error: ${error}`);
     }
-  }, []);
-
-  const handleLogin = () => {
-    window.location.href = '/login';
-  };
-
-  const handleSetToken = () => {
-    try {
-      localStorage.setItem('auth_token', 'test_token_' + Date.now());
-      setToken(localStorage.getItem('auth_token'));
-      setMessage('Test token set successfully!');
-    } catch (error) {
-      setMessage(`Error setting token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  const handleClearToken = () => {
-    try {
-      localStorage.removeItem('auth_token');
-      setToken(null);
-      setMessage('Token cleared successfully!');
-    } catch (error) {
-      setMessage(`Error clearing token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  const handleGoToChat = () => {
-    window.location.href = '/chat';
+    setLoading(false);
   };
 
   return (
-    <div style={{ 
-      padding: '2rem', 
-      maxWidth: '600px', 
-      margin: '0 auto',
-      fontFamily: 'system-ui, sans-serif'
-    }}>
-      <h1 style={{ marginBottom: '1rem' }}>Authentication Debug Page</h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Debug API Tests</h1>
       
-      <div style={{ 
-        padding: '1rem', 
-        border: '1px solid #ccc', 
-        borderRadius: '8px',
-        marginBottom: '1rem',
-        backgroundColor: token ? '#d1fae5' : '#fee2e2'
-      }}>
-        <h2>Token Status</h2>
-        <p><strong>Message:</strong> {message}</p>
-        <p><strong>Token:</strong> {token ? `${token.substring(0, 20)}...` : 'No token'}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Files Test */}
+        <div className="border rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-4">Files API Test</h2>
+          <button
+            onClick={testFiles}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 mb-4"
+          >
+            Test Files API
+          </button>
+          <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-64">
+            {filesResult || 'Click button to test...'}
+          </pre>
+        </div>
+
+        {/* Chat Test */}
+        <div className="border rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-4">Chat API Test</h2>
+          <button
+            onClick={testChat}
+            disabled={loading}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 mb-4"
+          >
+            Test Chat API
+          </button>
+          <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-64">
+            {chatResult || 'Click button to test...'}
+          </pre>
+        </div>
       </div>
-      
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button 
-          onClick={handleLogin}
-          style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Go to Login
-        </button>
-        <button 
-          onClick={handleSetToken}
-          style={{
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Set Test Token
-        </button>
-        <button 
-          onClick={handleClearToken}
-          style={{
-            backgroundColor: '#ef4444',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Clear Token
-        </button>
-      </div>
-      
-      <div style={{ marginBottom: '1rem' }}>
-        <button 
-          onClick={handleGoToChat}
-          style={{
-            backgroundColor: '#8b5cf6',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.25rem',
-            cursor: 'pointer',
-            width: '100%'
-          }}
-        >
-          Go to Chat Page (with current token)
-        </button>
-      </div>
-      
-      <div style={{ 
-        padding: '1rem', 
-        border: '1px solid #ccc', 
-        borderRadius: '8px',
-        backgroundColor: '#f3f4f6'
-      }}>
-        <h3>Debugging Instructions</h3>
-        <ol style={{ paddingLeft: '1.5rem' }}>
-          <li>Click "Set Test Token" to manually set a test token</li>
-          <li>Then click "Go to Chat Page" to test if the chat page accepts the token</li>
-          <li>If you're redirected back to login, there's an issue with the chat page</li>
-          <li>If you see the chat interface, authentication is working</li>
+
+      <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
+        <h3 className="font-semibold text-yellow-800">Instructions:</h3>
+        <ol className="list-decimal list-inside text-yellow-700 mt-2">
+          <li>Make sure you're logged in (go to /login first)</li>
+          <li>Test Files API - should show list of uploaded files</li>
+          <li>Test Chat API - should show streaming SSE response</li>
         </ol>
       </div>
     </div>

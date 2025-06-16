@@ -5,6 +5,7 @@ import { useState, useRef } from 'react';
 interface UploadBoxProps {
   onUploadSuccess: (personaId: string, personaName: string, chunks: number) => void;
   onUploadError: (error: string) => void;
+  token?: string;
 }
 
 interface UploadResponse {
@@ -15,7 +16,7 @@ interface UploadResponse {
   message: string;
 }
 
-export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxProps) {
+export default function UploadBox({ onUploadSuccess, onUploadError, token }: UploadBoxProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [personaName, setPersonaName] = useState('');
@@ -57,8 +58,12 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
     setUploadProgress(10);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
+      // Use token prop first, then fall back to localStorage
+      const authToken = token || localStorage.getItem('auth_token');
+      console.log('🔐 UploadBox: Using token prop:', !!token, 'localStorage token:', !!localStorage.getItem('auth_token'));
+      console.log('🔐 UploadBox: Final auth token available:', !!authToken);
+      
+      if (!authToken) {
         onUploadError('Authentication token not found. Please log in again.');
         return;
       }
@@ -72,22 +77,27 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
 
       setUploadProgress(30);
 
-      const response = await fetch('http://127.0.0.1:8000/persona/upload', {
+      console.log('📤 UploadBox: Making upload request with token:', authToken.substring(0, 20) + '...');
+
+      const response = await fetch('/api/persona/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: formData,
       });
 
+      console.log('📥 UploadBox: Upload response status:', response.status);
       setUploadProgress(70);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ UploadBox: Upload error response:', errorData);
         throw new Error(errorData.detail || 'Upload failed');
       }
 
       const data: UploadResponse = await response.json();
+      console.log('✅ UploadBox: Upload successful:', data);
       setUploadProgress(100);
       
       // Clear form
@@ -101,7 +111,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
       onUploadSuccess(data.persona_id, data.name, data.chunks);
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ UploadBox: Upload error:', error);
       onUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
@@ -124,8 +134,12 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
     setUploadProgress(10);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
+      // Use token prop first, then fall back to localStorage
+      const authToken = token || localStorage.getItem('auth_token');
+      console.log('🔐 UploadBox: Using token prop:', !!token, 'localStorage token:', !!localStorage.getItem('auth_token'));
+      console.log('🔐 UploadBox: Final auth token available:', !!authToken);
+      
+      if (!authToken) {
         onUploadError('Authentication token not found. Please log in again.');
         return;
       }
@@ -139,22 +153,27 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
 
       setUploadProgress(30);
 
-      const response = await fetch('http://127.0.0.1:8000/persona/upload', {
+      console.log('📤 UploadBox: Making text upload request with token:', authToken.substring(0, 20) + '...');
+
+      const response = await fetch('/api/persona/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: formData,
       });
 
+      console.log('📥 UploadBox: Text upload response status:', response.status);
       setUploadProgress(70);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ UploadBox: Text upload error response:', errorData);
         throw new Error(errorData.detail || 'Upload failed');
       }
 
       const data: UploadResponse = await response.json();
+      console.log('✅ UploadBox: Text upload successful:', data);
       setUploadProgress(100);
       
       // Clear form
@@ -165,7 +184,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError }: UploadBoxP
       onUploadSuccess(data.persona_id, data.name, data.chunks);
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ UploadBox: Text upload error:', error);
       onUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
