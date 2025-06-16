@@ -1,0 +1,14 @@
+Test Document 1: Product Management Basics
+
+This is a test document about product management fundamentals.
+
+Product management is a discipline that focuses on the strategy, roadmap, feature definition, and overall success of a product or product line. Product managers work at the intersection of business, technology, and user experience to guide products from conception to launch.
+
+Key responsibilities include:
+- Market research and competitive analysis
+- Product roadmap planning 
+- Feature prioritization
+- Stakeholder communication
+- Data analysis and metrics tracking
+
+Successful product managers combine analytical thinking with strong communication skills to deliver products that meet both user needs and business objectives. 

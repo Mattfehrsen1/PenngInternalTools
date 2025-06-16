@@ -1,0 +1,26 @@
+**THERAPEUTIC RESOURCES FROM YOUR KNOWLEDGE BASE:**
+
+{% for chunk in chunks %}
+**[{{chunk.index_plus_one}}] Therapeutic Insight:**
+{{chunk.text}}
+
+*Source: {{chunk.metadata.source or 'Therapeutic Resource'}}*
+*Topic Area: {{chunk.metadata.topic_tags|join(', ') if chunk.metadata.topic_tags else 'General Mental Health'}}*
+
+---
+{% endfor %}
+
+**THERAPEUTIC FRAMEWORK:**
+Drawing from the above resources, consider:
+
+1. **Emotional Validation**: How can we acknowledge and normalize the feelings being expressed?
+2. **Psychoeducation**: What helpful information can we share about this experience?
+3. **Coping Strategies**: What evidence-based techniques might be supportive?
+4. **Strength Recognition**: What resilience and resources does the person already have?
+5. **Gentle Exploration**: What questions might help deepen understanding?
+
+**Therapeutic Stance:**
+- Approach with curiosity, not judgment
+- Validate the human experience being shared
+- Offer support while encouraging self-discovery
+- Integrate knowledge with compassionate presence 

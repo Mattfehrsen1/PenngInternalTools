@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "created_at": "2025-06-10",
+  "description": "Initial three-layer prompt architecture",
+  "layers": {
+    "system": {
+      "default": "prompts/system/default.txt",
+      "technical_expert": "prompts/system/technical_expert.txt", 
+      "creative_writer": "prompts/system/creative_writer.txt"
+    },
+    "rag": {
+      "standard": "prompts/rag/standard.txt",
+      "citation_focused": "prompts/rag/citation_focused.txt"
+    }
+  },
+  "default_config": {
+    "system_template": "default",
+    "rag_template": "standard"
+  },
+  "persona_overrides": {
+    "technical": {
+      "system_template": "technical_expert",
+      "rag_template": "citation_focused"
+    },
+    "creative": {
+      "system_template": "creative_writer", 
+      "rag_template": "standard"
+    }
+  }
+} 

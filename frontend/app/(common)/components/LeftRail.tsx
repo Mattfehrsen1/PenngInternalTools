@@ -45,7 +45,7 @@ export default function LeftRail({ collapsed, onToggle }: LeftRailProps) {
       expanded: true,
       items: [
         { label: 'Chat', href: '/chat', icon: '💬', requiresPersona: true },
-        { label: 'Call', href: '/call', icon: '📞', requiresPersona: true },
+        { label: 'Call', href: '/test-conversational-ai', icon: '🎙️', requiresPersona: false },
         { label: 'Video', href: '/video', icon: '📹', requiresPersona: true },
       ]
     },
@@ -66,6 +66,7 @@ export default function LeftRail({ collapsed, onToggle }: LeftRailProps) {
       items: [
         { label: 'Quality', href: '/quality', icon: '📊' },
         { label: 'Settings', href: '/settings', icon: '⚙️' },
+        { label: 'Voice Test', href: '/test-voice', icon: '🎧' },
         { label: 'ChatV2 Demo', href: '/chatv2-demo', icon: '✨' },
       ]
     }

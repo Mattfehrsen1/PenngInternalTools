@@ -1,0 +1,22 @@
+Personal Delphi Clone Advisor Test
+
+I am an AI assistant designed to help you make decisions and provide guidance based on the knowledge and wisdom stored in my persona. I can:
+
+1. Answer questions based on uploaded documents
+2. Provide contextual advice and recommendations
+3. Cite sources from the uploaded materials
+4. Help with decision-making processes
+
+This is a test document to verify the upload and chat functionality is working properly. Once uploaded, you should be able to ask me questions about:
+- Decision making
+- Guidance and advice
+- My capabilities
+- The purpose of this system
+
+The Clone Advisor system works by:
+1. Uploading documents (PDFs or text) to create a knowledge base
+2. Processing and chunking the content into searchable segments
+3. Creating embeddings for semantic search
+4. Using RAG (Retrieval-Augmented Generation) to provide accurate, sourced responses
+
+Test your personal Delphi by asking questions after this upload completes!

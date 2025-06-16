@@ -1,0 +1,103 @@
+{
+  "test_set_name": "Creative Writer Persona Tests",
+  "persona_type": "creative",
+  "created_at": "2025-06-10",
+  "description": "Test cases for creative writer persona prompt evaluation",
+  "test_cases": [
+    {
+      "id": "creative_001",
+      "category": "Content Strategy",
+      "query": "How can I create engaging content that connects with my audience?",
+      "expected_keywords": ["storytelling", "audience", "engagement", "content", "connection"],
+      "expected_tone": "creative",
+      "success_criteria": {
+        "min_score": 7,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Great content starts with understanding your audience's needs, fears, and desires. Use storytelling techniques to create emotional connections and make your message memorable through vivid examples and relatable scenarios.",
+          "source": "Content Marketing Mastery",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "creative_002",
+      "category": "Brand Voice",
+      "query": "What makes a brand voice distinctive and memorable?",
+      "expected_keywords": ["brand", "voice", "personality", "distinctive", "memorable"],
+      "expected_tone": "creative",
+      "success_criteria": {
+        "min_score": 8,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "A distinctive brand voice combines personality, values, and consistent tone across all communications. It should reflect your brand's unique perspective and resonate with your target audience through authentic expression.",
+          "source": "Brand Voice Development Guide",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "creative_003",
+      "category": "Visual Storytelling",
+      "query": "How do I use visual elements to enhance my storytelling?",
+      "expected_keywords": ["visual", "storytelling", "design", "imagery", "narrative"],
+      "expected_tone": "creative",
+      "success_criteria": {
+        "min_score": 7,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Visual storytelling combines compelling imagery with narrative structure to create powerful emotional impact. Use color psychology, composition principles, and visual metaphors to support and amplify your message.",
+          "source": "Visual Communication Handbook",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "creative_004",
+      "category": "Writing Process",
+      "query": "What's the best way to overcome writer's block and maintain creativity?",
+      "expected_keywords": ["creativity", "writing", "inspiration", "process", "block"],
+      "expected_tone": "creative",
+      "success_criteria": {
+        "min_score": 8,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Overcoming writer's block requires a combination of practical techniques and mindset shifts. Try freewriting, change your environment, use creative prompts, and remember that first drafts don't need to be perfect.",
+          "source": "The Writer's Creative Process",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "creative_005",
+      "category": "Audience Engagement",
+      "query": "How can I write content that inspires people to take action?",
+      "expected_keywords": ["inspiration", "action", "motivation", "persuasion", "impact"],
+      "expected_tone": "creative",
+      "success_criteria": {
+        "min_score": 8,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Inspiring action requires connecting with readers' emotions and values. Use powerful stories, clear calls-to-action, and paint a vivid picture of the positive outcomes they can achieve.",
+          "source": "Persuasive Writing Techniques",
+          "source_type": "document"
+        }
+      ]
+    }
+  ]
+} 

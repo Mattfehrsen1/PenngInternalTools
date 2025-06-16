@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Debug Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { margin: 5px 0; padding: 5px; background: #f0f0f0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .warning { background: #fff3e0; color: #ef6c00; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Clone Advisor Token Debug</h1>
+    <div id="logs"></div>
+    
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="testPersonaList()">2. Test Persona List</button>
+    <button onclick="testUpload()">3. Test Upload</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+
+    <script>
+        let currentToken = null;
+
+        function log(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testLogin() {
+            try {
+                log('🔐 Testing login...');
+                
+                const formData = new FormData();
+                formData.append('username', 'demo');
+                formData.append('password', 'demo123');
+
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                log(`📡 Login response status: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentToken = data.access_token;
+                    log(`✅ Login successful! Token: ${currentToken.substring(0, 30)}...`, 'success');
+                    
+                    // Save to localStorage like the app does
+                    localStorage.setItem('auth_token', currentToken);
+                    log('💾 Token saved to localStorage', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Login failed: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPersonaList() {
+            try {
+                const token = currentToken || localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No token available. Please login first.', 'error');
+                    return;
+                }
+
+                log('📋 Testing persona list...');
+                log(`🔑 Using token: ${token.substring(0, 30)}...`);
+
+                const response = await fetch('http://localhost:3000/api/persona/list', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                log(`📡 Persona list response status: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Personas loaded: ${data.personas?.length || 0} found`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Persona list failed: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Persona list error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpload() {
+            try {
+                const token = currentToken || localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No token available. Please login first.', 'error');
+                    return;
+                }
+
+                log('📤 Testing upload...');
+                log(`🔑 Using token: ${token.substring(0, 30)}...`);
+
+                const formData = new FormData();
+                formData.append('name', 'Debug Test Persona');
+                formData.append('text', 'This is a test upload to debug authentication issues.');
+
+                const response = await fetch('http://localhost:3000/api/persona/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+
+                log(`📡 Upload response status: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Upload successful! Persona: ${data.name}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Upload failed: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Upload error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check for existing token on load
+        window.onload = function() {
+            const existingToken = localStorage.getItem('auth_token');
+            if (existingToken) {
+                log(`💾 Found existing token: ${existingToken.substring(0, 30)}...`, 'warning');
+                currentToken = existingToken;
+            } else {
+                log('💾 No existing token found');
+            }
+        };
+    </script>
+</body>
+</html> 

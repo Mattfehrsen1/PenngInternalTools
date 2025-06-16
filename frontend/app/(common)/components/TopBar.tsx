@@ -141,31 +141,34 @@ export default function TopBar() {
 
       {/* Right Section - Status Indicators */}
       <div className="flex items-center space-x-4">
-        {/* Global Search */}
-        <div className="hidden md:block">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
+        {/* Voice Chat Button */}
+        <button
+          onClick={() => router.push('/test-conversational-ai')}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-sm"
+        >
+          <span className="text-lg">🎙️</span>
+          <span className="font-medium">Voice Chat</span>
+        </button>
+
+        {/* Model Status */}
+        <div className="text-sm text-gray-600">
+          <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+            Model: gpt-4o
+          </span>
         </div>
-        
-        {/* Model Indicator */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600">
-          <span>Model:</span>
-          <span className="font-medium text-gray-900">{currentModel}</span>
+
+        {/* Token Usage */}
+        <div className="text-sm text-gray-600">
+          <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+            Tokens: 12.3k
+          </span>
         </div>
-        
-        {/* Token Count */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600">
-          <span>Tokens:</span>
-          <span className="font-medium text-gray-900">{tokenCount}</span>
-        </div>
-        
+
         {/* Test Status */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600">
-          <span>Tests:</span>
-          <span className="font-medium text-green-600">{testCount}</span>
+        <div className="text-sm text-gray-600">
+          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+            Tests: 80%
+          </span>
         </div>
       </div>
     </div>

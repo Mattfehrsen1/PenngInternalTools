@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat SSE Test</title>
+</head>
+<body>
+    <h1>Testing Chat SSE Stream</h1>
+    <div id="messages"></div>
+    <div id="citations"></div>
+    <button onclick="testChat()">Test Chat</button>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let token = null;
+
+        async function login() {
+            const formData = new FormData();
+            formData.append('username', 'demo');
+            formData.append('password', 'demo123');
+
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            token = data.access_token;
+            console.log('✅ Logged in:', token.substring(0, 20) + '...');
+        }
+
+        async function testChat() {
+            if (!token) {
+                await login();
+            }
+
+            const messagesDiv = document.getElementById('messages');
+            const citationsDiv = document.getElementById('citations');
+            messagesDiv.innerHTML = '';
+            citationsDiv.innerHTML = '';
+
+            // Create assistant message placeholder
+            let assistantContent = '';
+            let citations = [];
+
+            try {
+                // Send request to chat endpoint
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        persona_id: '550e8400-e29b-41d4-a716-446655440001',
+                        question: 'What is the main concept?',
+                        model: 'gpt-4o',
+                        k: 3
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to send message: ${response.status}`);
+                }
+
+                // Process SSE stream with our fixed logic
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    throw new Error('Response body reader could not be created');
+                }
+
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let currentEvent = '';
+
+                // Process the stream
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += chunk;
+
+                    // Process complete lines
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) continue;
+
+                        if (trimmedLine.startsWith('event: ')) {
+                            currentEvent = trimmedLine.slice(7).trim();
+                        } else if (trimmedLine.startsWith('data: ')) {
+                            const dataStr = trimmedLine.slice(6).trim();
+
+                            try {
+                                const data = JSON.parse(dataStr);
+
+                                console.log(`Received ${currentEvent} event:`, data);
+
+                                if (currentEvent === 'citations') {
+                                    // Backend sends citations as an array directly
+                                    citations = data.map((citation, index) => 
+                                        `[${index + 1}] ${citation.source}`
+                                    );
+                                    citationsDiv.innerHTML = '<h3>Citations:</h3>' + citations.join('<br>');
+                                } else if (currentEvent === 'token') {
+                                    if (data.token) {
+                                        assistantContent += data.token;
+                                        messagesDiv.innerHTML = assistantContent;
+                                    }
+                                } else if (currentEvent === 'done') {
+                                    console.log('Chat completed with', data.tokens || 'unknown', 'tokens');
+                                    messagesDiv.innerHTML += '<br><br><strong>✅ Complete!</strong>';
+                                } else if (currentEvent === 'error') {
+                                    console.error('Chat error:', data.error);
+                                    messagesDiv.innerHTML = '<span style="color: red;">❌ Error: ' + data.error + '</span>';
+                                    return;
+                                }
+
+                                // Reset event after processing
+                                currentEvent = '';
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', dataStr, e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                messagesDiv.innerHTML = '<span style="color: red;">❌ Error: ' + error.message + '</span>';
+            }
+        }
+    </script>
+</body>
+</html> 

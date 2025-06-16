@@ -71,6 +71,7 @@ class LLMRouter:
         
         # Pricing per 1K tokens (input/output)
         self.pricing = {
+            "gpt-4o": {"input": 0.0025, "output": 0.01},  # GPT-4o pricing
             "gpt-4-1106-preview": {"input": 0.01, "output": 0.03},
             "gpt-4": {"input": 0.03, "output": 0.06},
             "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},

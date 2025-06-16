@@ -1,0 +1,103 @@
+{
+  "test_set_name": "Default Persona Tests",
+  "persona_type": "default",
+  "created_at": "2025-06-10",
+  "description": "Test cases for default persona prompt evaluation",
+  "test_cases": [
+    {
+      "id": "default_001",
+      "category": "General Knowledge",
+      "query": "What are the key benefits of artificial intelligence?",
+      "expected_keywords": ["artificial intelligence", "benefits", "automation", "efficiency"],
+      "expected_tone": "helpful",
+      "success_criteria": {
+        "min_score": 7,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Artificial intelligence offers numerous benefits including improved efficiency, automation of repetitive tasks, better decision-making through data analysis, and the ability to process large amounts of information quickly.",
+          "source": "AI Overview Guide",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "default_002",
+      "category": "Problem Solving",
+      "query": "How do I approach solving complex problems?",
+      "expected_keywords": ["problem solving", "approach", "strategy", "solution"],
+      "expected_tone": "helpful",
+      "success_criteria": {
+        "min_score": 6,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Effective problem solving involves breaking down complex issues into smaller, manageable parts, gathering relevant information, considering multiple solutions, and testing approaches systematically.",
+          "source": "Problem Solving Methodology",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "default_003",
+      "category": "Learning",
+      "query": "What's the best way to learn new skills efficiently?",
+      "expected_keywords": ["learning", "skills", "practice", "efficiency"],
+      "expected_tone": "helpful",
+      "success_criteria": {
+        "min_score": 7,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Efficient skill learning requires active practice, spaced repetition, seeking feedback, and applying new knowledge in real-world contexts. Focus on deliberate practice rather than passive consumption.",
+          "source": "Learning Strategies Guide",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "default_004",
+      "category": "Communication",
+      "query": "How can I communicate more effectively with my team?",
+      "expected_keywords": ["communication", "team", "collaboration", "effective"],
+      "expected_tone": "helpful",
+      "success_criteria": {
+        "min_score": 6,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Effective team communication involves active listening, clear and concise messaging, regular check-ins, and creating an environment where team members feel comfortable sharing ideas and concerns.",
+          "source": "Team Communication Best Practices",
+          "source_type": "document"
+        }
+      ]
+    },
+    {
+      "id": "default_005",
+      "category": "Productivity",
+      "query": "What are some proven techniques for improving productivity?",
+      "expected_keywords": ["productivity", "techniques", "efficiency", "time management"],
+      "expected_tone": "helpful",
+      "success_criteria": {
+        "min_score": 7,
+        "must_include_citations": true,
+        "should_include_code_examples": false
+      },
+      "sample_chunks": [
+        {
+          "text": "Proven productivity techniques include time blocking, the Pomodoro Technique, prioritizing tasks using the Eisenhower Matrix, eliminating distractions, and taking regular breaks to maintain focus.",
+          "source": "Productivity Optimization Guide",
+          "source_type": "document"
+        }
+      ]
+    }
+  ]
+} 

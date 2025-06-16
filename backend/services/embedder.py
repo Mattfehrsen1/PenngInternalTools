@@ -17,17 +17,22 @@ async def get_openai_client():
     """Get a shared OpenAI client with proper lifecycle management"""
     global _openai_client
     
-    if _openai_client is None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
-        _openai_client = AsyncOpenAI(api_key=api_key)
+    # Always create a new client to avoid fork issues on macOS
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not found in environment variables")
+    
+    # Create new client each time to avoid threading issues
+    client = AsyncOpenAI(api_key=api_key)
     
     try:
-        yield _openai_client
+        yield client
     except Exception as e:
         logger.error(f"Error with OpenAI client: {e}")
         raise
+    finally:
+        # Close the client properly
+        await client.close()
 
 class Embedder:
     def __init__(self):

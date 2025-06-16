@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Cache Performance Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .cache-hit {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .cache-miss {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .stats {
+            background: #e2e3e5;
+            border: 1px solid #d6d8db;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Redis Cache Performance Test</h1>
+        <p>Test the Redis caching improvements for ElevenLabs function calls</p>
+        
+        <div class="test-section">
+            <h3>📊 Cache Statistics</h3>
+            <button onclick="getCacheStats()">Get Cache Stats</button>
+            <button onclick="startMonitoring()">Start Real-time Monitoring</button>
+            <button onclick="stopMonitoring()">Stop Monitoring</button>
+            <div id="cache-stats" class="stats">Click "Get Cache Stats" to see current statistics</div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚡ Performance Test</h3>
+            <p>Test the same query twice to see cache performance improvement:</p>
+            <button onclick="testCachePerformance()">Run Performance Test</button>
+            <div id="performance-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Custom Query Test</h3>
+            <input type="text" id="custom-query" placeholder="Enter your test question..." style="width: 400px; padding: 8px; margin: 5px;">
+            <br>
+            <button onclick="testCustomQuery()">Test Query (Cache Miss)</button>
+            <button onclick="testCustomQuery(true)">Test Same Query (Cache Hit)</button>
+            <div id="custom-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📈 Test Log</h3>
+            <div id="test-log" style="max-height: 300px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ddd;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const SERVICE_TOKEN = 'NVhAvjqhHixz8liX47R4qJze9l236Rquu7pjfL7fLD0';
+        const PERSONA_ID = 'e250046f-b3c3-4d9e-993e-ed790f7d1e73';
+        
+        let monitoringInterval = null;
+        let testCounter = 0;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('test-log');
+            const className = type === 'error' ? 'error' : type === 'cache-hit' ? 'cache-hit' : type === 'cache-miss' ? 'cache-miss' : 'success';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function getCacheStats() {
+            try {
+                const response = await fetch(`${API_BASE}/elevenlabs/cache/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.cache_stats;
+                    document.getElementById('cache-stats').innerHTML = `
+                        <strong>Redis Cache Status:</strong><br>
+                        🔌 Status: ${stats.enabled ? '✅ Connected' : '❌ Disconnected'}<br>
+                        👥 Connections: ${stats.connected_clients}<br>
+                        💾 Memory: ${stats.used_memory_human}<br>
+                        🎯 Hit Rate: ${stats.hit_rate}%<br>
+                        📈 Cache Hits: ${stats.keyspace_hits}<br>
+                        📉 Cache Misses: ${stats.keyspace_misses}
+                    `;
+                    log(`Cache stats updated - Hit rate: ${stats.hit_rate}%`);
+                } else {
+                    throw new Error('Failed to get cache stats');
+                }
+            } catch (error) {
+                log(`Error getting cache stats: ${error.message}`, 'error');
+            }
+        }
+
+        async function queryPersonaKnowledge(query) {
+            const startTime = performance.now();
+            
+            try {
+                const response = await fetch(`${API_BASE}/elevenlabs/function-call`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Service-Token': SERVICE_TOKEN
+                    },
+                    body: JSON.stringify({
+                        function_name: 'query_persona_knowledge',
+                        parameters: {
+                            query: query,
+                            persona_id: PERSONA_ID
+                        }
+                    })
+                });
+
+                const endTime = performance.now();
+                const latency = endTime - startTime;
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const result = data.result;
+                    const cacheHit = result.cache_hit;
+                    
+                    log(`Query: "${query}" - ${latency.toFixed(2)}ms - ${cacheHit ? '🎯 Cache HIT' : '📉 Cache MISS'}`, cacheHit ? 'cache-hit' : 'cache-miss');
+                    
+                    return {
+                        success: true,
+                        latency: latency,
+                        cacheHit: cacheHit,
+                        content: result.content
+                    };
+                } else {
+                    throw new Error(`API Error: ${data.error || response.statusText}`);
+                }
+            } catch (error) {
+                log(`Query failed: ${error.message}`, 'error');
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function testCachePerformance() {
+            const testQuery = "What is your background and expertise?";
+            const resultsDiv = document.getElementById('performance-results');
+            
+            resultsDiv.innerHTML = '<p>🧪 Running performance test...</p>';
+            log('Starting cache performance test');
+
+            // First call (cache miss expected)
+            const result1 = await queryPersonaKnowledge(testQuery);
+            if (!result1.success) {
+                resultsDiv.innerHTML = `<div class="error">❌ First call failed: ${result1.error}</div>`;
+                return;
+            }
+
+            // Small delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Second call (cache hit expected)
+            const result2 = await queryPersonaKnowledge(testQuery);
+            if (!result2.success) {
+                resultsDiv.innerHTML = `<div class="error">❌ Second call failed: ${result2.error}</div>`;
+                return;
+            }
+
+            // Calculate improvement
+            const improvement = ((result1.latency - result2.latency) / result1.latency) * 100;
+            const timeSaved = result1.latency - result2.latency;
+
+            resultsDiv.innerHTML = `
+                <div class="success">
+                    <strong>🎯 Performance Test Results:</strong><br>
+                    📊 First call: ${result1.latency.toFixed(2)}ms (Cache ${result1.cacheHit ? 'HIT' : 'MISS'})<br>
+                    📊 Second call: ${result2.latency.toFixed(2)}ms (Cache ${result2.cacheHit ? 'HIT' : 'MISS'})<br>
+                    ⚡ Improvement: ${improvement.toFixed(1)}%<br>
+                    💰 Time saved: ${timeSaved.toFixed(2)}ms<br>
+                    ${improvement > 70 ? '🚀 EXCELLENT: Cape Town deployment ready!' : 
+                      improvement > 50 ? '✅ GOOD: Significant improvement' : 
+                      '⚠️ MODERATE: Some improvement'}
+                </div>
+            `;
+
+            log(`Performance test complete - ${improvement.toFixed(1)}% improvement`);
+        }
+
+        async function testCustomQuery(repeat = false) {
+            const query = document.getElementById('custom-query').value;
+            if (!query.trim()) {
+                alert('Please enter a query to test');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('custom-results');
+            const result = await queryPersonaKnowledge(query);
+
+            if (result.success) {
+                resultsDiv.innerHTML = `
+                    <div class="${result.cacheHit ? 'cache-hit' : 'cache-miss'}">
+                        <strong>${result.cacheHit ? '🎯 Cache HIT' : '📉 Cache MISS'}:</strong><br>
+                        ⏱️ Latency: ${result.latency.toFixed(2)}ms<br>
+                        📝 Response: ${result.content.substring(0, 200)}...
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `<div class="error">❌ Query failed: ${result.error}</div>`;
+            }
+        }
+
+        function startMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            
+            monitoringInterval = setInterval(getCacheStats, 2000);
+            log('Started real-time monitoring (every 2 seconds)');
+        }
+
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+                log('Stopped real-time monitoring');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            getCacheStats();
+            log('Redis Cache Performance Test Interface loaded');
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,21 @@
+**BUSINESS INTELLIGENCE FROM YOUR KNOWLEDGE BASE:**
+
+{% for chunk in chunks %}
+**[{{chunk.index_plus_one}}] Key Insight:**
+{{chunk.text}}
+
+*Source: {{chunk.metadata.source or 'Business Document'}}*
+*Context: {{chunk.metadata.topic_tags|join(', ') if chunk.metadata.topic_tags else 'General Business'}}*
+
+---
+{% endfor %}
+
+**ANALYSIS FRAMEWORK:**
+Use the above information to provide:
+1. **Bottom Line Up Front (BLUF)**: What's the key takeaway?
+2. **The Numbers**: What metrics, data points, or financial implications matter?
+3. **Action Steps**: What specific actions should be taken?
+4. **Risk Assessment**: What could go wrong and how to mitigate it?
+5. **Success Metrics**: How to measure if the advice is working?
+
+Remember: Every piece of advice should tie back to profitable growth and measurable business outcomes. 

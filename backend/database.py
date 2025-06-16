@@ -10,8 +10,14 @@ DATABASE_URL = os.getenv(
 )
 
 # Convert to async URL if needed
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
+# Fix SSL parameter format for asyncpg
+if "sslmode=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("sslmode=", "ssl=")
 
 # Create async engine
 engine = create_async_engine(

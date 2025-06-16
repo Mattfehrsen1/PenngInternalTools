@@ -1,0 +1,1 @@
+This is a test document to verify that the TextChunker fix is working correctly. The worker should now be able to process files without the chunk_size and overlap parameter errors.

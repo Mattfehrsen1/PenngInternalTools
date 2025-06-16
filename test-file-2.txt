@@ -1,0 +1,15 @@
+Test Document 2: Agile Development Methodology
+
+This document covers the basics of Agile software development.
+
+Agile is an iterative approach to software development that emphasizes collaboration, customer feedback, and small, rapid releases. The Agile methodology was formalized in 2001 with the Agile Manifesto.
+
+Core principles:
+- Individuals and interactions over processes and tools
+- Working software over comprehensive documentation
+- Customer collaboration over contract negotiation
+- Responding to change over following a plan
+
+Common Agile frameworks include Scrum, Kanban, and Extreme Programming (XP). These frameworks provide structured approaches to implementing Agile principles in software development teams.
+
+Benefits of Agile include faster time to market, improved quality, better customer satisfaction, and increased team productivity. 

@@ -1,0 +1,9 @@
+RELEVANT KNOWLEDGE FROM YOUR DOCUMENTS:
+
+{% for chunk in chunks %}
+[{{ chunk.index_plus_one }}] {{ chunk.text }}
+Source: {{ chunk.source }} ({{ chunk.source_type }})
+
+{% endfor %}
+
+Please use this information to answer the user's question. Reference sources using [1], [2], etc. where appropriate. 

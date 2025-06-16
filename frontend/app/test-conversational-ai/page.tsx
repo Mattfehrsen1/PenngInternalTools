@@ -48,6 +48,50 @@ export default function TestConversationalAI() {
     onError: (message: string, context?: any) => {
       console.error('❌ Conversation error:', message, context);
       setError(message);
+    },
+    // NEW: Client-side tools configuration
+    clientTools: {
+      // Visual framework display
+      show_business_framework: (parameters: any) => {
+        console.log('🎯 Client Tool: Show Business Framework', parameters);
+        // Trigger UI to show framework visualization
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: `📊 Displaying: ${parameters.framework_name}\n${parameters.steps?.join('\n• ') || ''}`
+        }]);
+        return { success: true, message: `Displayed ${parameters.framework_name}` };
+      },
+      
+      // Highlight relevant documents
+      highlight_sources: (parameters: any) => {
+        console.log('📚 Client Tool: Highlight Sources', parameters);
+        setMessages(prev => [...prev, {
+          role: 'system', 
+          content: `📖 Referenced Sources:\n${parameters.documents?.join('\n• ') || ''}`
+        }]);
+        return { success: true, sources_shown: parameters.documents?.length || 0 };
+      },
+      
+      // Show persona information
+      display_persona_info: (parameters: any) => {
+        console.log('🎭 Client Tool: Display Persona Info', parameters);
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: `🎭 Alex Hormozi Profile:\n• Expertise: ${parameters.expertise || 'Business Strategy'}\n• Focus: ${parameters.focus || 'Practical Results'}`
+        }]);
+        return { success: true, persona_displayed: true };
+      },
+      
+      // Interactive navigation
+      navigate_to_feature: (parameters: any) => {
+        console.log('🧭 Client Tool: Navigate to Feature', parameters);
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: `🔗 Navigate to: ${parameters.feature} (Demo - would redirect in full app)`
+        }]);
+        // In real app: router.push(`/${parameters.feature}`)
+        return { success: true, navigated_to: parameters.feature };
+      }
     }
   });
 
