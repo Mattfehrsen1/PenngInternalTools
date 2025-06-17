@@ -57,3 +57,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #2563eb; /* Blue theme */
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #2563eb; /* Blue theme */
+  cursor: pointer;
+  border: none;
+}

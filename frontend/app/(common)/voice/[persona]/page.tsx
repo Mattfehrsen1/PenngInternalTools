@@ -105,17 +105,54 @@ export default function VoicePage() {
       
       if (voicesResponse.ok) {
         const voicesData = await voicesResponse.json();
+        console.log('Raw voice data:', voicesData);
+        
+        // Handle different response formats
+        const voicesArray = voicesData.voices || voicesData || [];
+        
         // Map ElevenLabs voices to our UI format
-        const mappedVoices: VoiceOption[] = voicesData.voices.map((voice: any) => ({
-          id: voice.voice_id,
-          name: voice.name,
-          description: voice.description || `${voice.labels?.gender || 'unknown'} voice`,
-          gender: voice.labels?.gender === 'male' ? 'male' : 
-                  voice.labels?.gender === 'female' ? 'female' : 'neutral',
-          accent: voice.labels?.accent || 'American',
-          category: voice.category || 'conversational'
-        }));
+        const mappedVoices: VoiceOption[] = voicesArray.map((voice: any, index: number) => {
+          // Map voice to categories based on characteristics
+          let category = 'conversational'; // Default
+          const voiceName = voice.name?.toLowerCase() || '';
+          const gender = voice.labels?.gender || voice.gender || '';
+          
+          // Categorize voices based on name patterns and characteristics
+          if (voiceName.includes('narrator') || voiceName.includes('sam') || voiceName.includes('rachel')) {
+            category = 'narrative';
+          } else if (voiceName.includes('josh') || voiceName.includes('arnold') || voiceName.includes('paul')) {
+            category = 'professional';
+          } else if (voiceName.includes('domi') || voiceName.includes('fin') || voiceName.includes('charlie')) {
+            category = 'character';
+          } else {
+            // Distribute remaining voices across categories
+            const categories = ['professional', 'conversational', 'narrative', 'character'];
+            category = categories[index % categories.length];
+          }
+          
+          return {
+            id: voice.voice_id || voice.id,
+            name: voice.name,
+            description: voice.description || `${gender || 'unknown'} voice`,
+            gender: gender === 'male' ? 'male' : gender === 'female' ? 'female' : 'neutral',
+            accent: voice.labels?.accent || voice.accent || 'American',
+            category: category
+          };
+        });
         setVoiceOptions(mappedVoices);
+        
+        console.log(`✅ Loaded ${mappedVoices.length} voices from ElevenLabs API:`, mappedVoices.slice(0, 3));
+      } else {
+        // Fallback to default voice if API fails
+        console.warn('Failed to load voices from API, using fallback');
+        setVoiceOptions([{
+          id: 'EXAVITQu4vr4xnSDxMaL',
+          name: 'Sarah',
+          description: 'Default voice (API unavailable)',
+          gender: 'female',
+          accent: 'American',
+          category: 'conversational'
+        }]);
       }
 
       // Load persona's current voice settings
@@ -145,8 +182,6 @@ export default function VoicePage() {
   };
 
   const handleVoicePreview = async (voiceId: string, text: string) => {
-    if (!selectedPersona) return;
-    
     try {
       setIsGenerating(true);
       setError(null);
@@ -157,27 +192,21 @@ export default function VoicePage() {
         return;
       }
 
-      // Use the real voice streaming endpoint
-      const response = await fetch(`/api/personas/${selectedPersona.id}/voice/stream`, {
+      // Use the dedicated voice preview endpoint
+      const response = await fetch('/api/voice/preview', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          text: text,
           voice_id: voiceId,
-          voice_settings: {
-            stability: voiceSettings.stability,
-            similarity_boost: voiceSettings.clarity,
-            style: 0.0,
-            use_speaker_boost: true
-          }
+          text: text
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Voice generation failed: ${response.status}`);
+        throw new Error(`Voice preview failed: ${response.status}`);
       }
 
       // Convert response to audio and play
@@ -253,6 +282,8 @@ export default function VoicePage() {
   };
 
   const filteredVoices = voiceOptions.filter(voice => voice.category === activeCategory);
+  
+  console.log(`🎤 Voice filtering: ${voiceOptions.length} total, ${filteredVoices.length} in category '${activeCategory}'`);
 
   if (loading) {
     return (
@@ -275,7 +306,7 @@ export default function VoicePage() {
         <div className="text-gray-500 mb-4">No persona selected</div>
         <button
           onClick={() => router.push('/clones')}
-          className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           Select a Persona
         </button>
@@ -302,7 +333,7 @@ export default function VoicePage() {
           
           <button
             onClick={handleSaveSettings}
-            className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
           >
             💾 Save Settings
           </button>
@@ -344,14 +375,15 @@ export default function VoicePage() {
 
                 {/* Voice Options */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredVoices.map((voice) => (
+                  {/* Show filtered voices or all voices as fallback */}
+                  {(filteredVoices.length > 0 ? filteredVoices : voiceOptions).map((voice) => (
                     <div
                       key={voice.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                        selectedVoice === voice.id
-                          ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200'
-                          : 'border-gray-200 hover:bg-gray-50'
-                      }`}
+                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+        selectedVoice === voice.id
+          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+          : 'border-gray-200 hover:bg-gray-50'
+      }`}
                       onClick={() => {
                         setSelectedVoice(voice.id);
                         updateVoiceSetting('voiceId', voice.id);
@@ -379,7 +411,7 @@ export default function VoicePage() {
                             handleVoicePreview(voice.id, sampleText);
                           }}
                           disabled={isGenerating}
-                          className="ml-2 px-3 py-1.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm disabled:opacity-50"
+                          className="ml-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
                         >
                           {isGenerating ? '⏳' : '🔊'}
                         </button>
@@ -413,7 +445,7 @@ export default function VoicePage() {
                   <button
                     onClick={() => handleVoicePreview(selectedVoice, sampleText)}
                     disabled={isGenerating || !sampleText.trim()}
-                    className="w-full px-4 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isGenerating ? '⏳ Generating...' : '🎤 Generate Voice Sample'}
                   </button>

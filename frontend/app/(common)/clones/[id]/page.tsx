@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AgentManager from '../../../../components/agent/AgentManager';
 
 interface CloneDetails {
   id: string;
@@ -324,6 +325,16 @@ export default function CloneEditPage() {
               </div>
             </div>
           </div>
+
+          {/* Agent Management */}
+          <AgentManager 
+            personaId={cloneId} 
+            personaName={clone.name}
+            onAgentUpdate={(agentId) => {
+              console.log('Agent updated:', agentId);
+              // Could update clone state here if needed
+            }}
+          />
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg border p-6">

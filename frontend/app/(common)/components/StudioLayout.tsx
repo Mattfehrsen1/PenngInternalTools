@@ -31,7 +31,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
         />
         
         {/* PageArea (flex-1) */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

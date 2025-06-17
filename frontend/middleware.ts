@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Let client-side handle all authentication
+export function middleware() {
   return NextResponse.next();
 }
 
+// Simplified config - avoid complex path matching
 export const config = {
   matcher: [
-    // Only apply to specific paths to avoid conflicts
-    '/chat/:path*',
-    '/files/:path*',
-    '/prompts/:path*',
-    '/voice/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

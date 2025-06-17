@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/components/auth-provider';
 
 export interface Persona {
   id: string;
@@ -25,6 +26,7 @@ interface PersonaContextType {
   personas: Persona[];
   setSelectedPersona: (persona: Persona | null) => void;
   loadPersonas: () => Promise<void>;
+  refreshPersonas: () => void;
   loading: boolean;
   error: string | null;
 }
@@ -42,6 +44,7 @@ export function PersonaProvider({ children }: PersonaProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated, token } = useAuth();
 
   // API-only approach - no mock data fallback
 
@@ -51,13 +54,15 @@ export function PersonaProvider({ children }: PersonaProviderProps) {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        console.log('[PersonaContext] No auth token found, user needs to log in');
-        setError('No authentication token found. Please log in.');
+      // Use token from AuthProvider instead of localStorage directly
+      if (!isAuthenticated || !token) {
+        console.log('[PersonaContext] Not authenticated or no token available');
+        setError('Not authenticated. Please log in.');
         setLoading(false);
         return;
       }
+      
+      console.log('[PersonaContext] Using token from auth provider:', token.substring(0, 20) + '...');
 
       console.log('[PersonaContext] Loading personas from API: /api/personas/list');
       const response = await fetch('/api/personas/list', {
@@ -149,16 +154,30 @@ export function PersonaProvider({ children }: PersonaProviderProps) {
     }
   }, [pathname, personas, selectedPersona]);
 
-  // Load personas on mount
+  // Load personas when authentication is ready
   useEffect(() => {
-    loadPersonas();
-  }, []);
+    if (isAuthenticated && token) {
+      console.log('[PersonaContext] Auth ready, loading personas...');
+      loadPersonas();
+    } else {
+      console.log('[PersonaContext] Waiting for authentication...');
+      setLoading(false);
+    }
+  }, [isAuthenticated, token]);
+
+  // Function to manually refresh personas (e.g., after login)
+  const refreshPersonas = () => {
+    if (isAuthenticated && token) {
+      loadPersonas();
+    }
+  };
 
   const value: PersonaContextType = {
     selectedPersona,
     personas,
     setSelectedPersona,
     loadPersonas,
+    refreshPersonas,
     loading,
     error,
   };

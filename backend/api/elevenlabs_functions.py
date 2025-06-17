@@ -231,11 +231,13 @@ async def query_persona_knowledge(query: str, persona_id: str, db: AsyncSession)
         }
 
 @router.post("/function-call", response_model=FunctionCallResponse)
+@router.post("/function-call/{persona_id}", response_model=FunctionCallResponse)
 @limiter.limit("60/minute")  # Step 4.2.1: Rate limiting - 60 calls per minute per IP
 async def handle_function_call(
     request: Request,  # Required for rate limiter
     function_request: FunctionCallRequest,
     x_service_token: str = Header(alias="X-Service-Token"),
+    persona_id: Optional[str] = None,  # Dynamic persona routing support
     auth: ElevenLabsAuth = Depends(get_elevenlabs_auth),
     db: AsyncSession = Depends(get_db)
 ):
@@ -257,18 +259,21 @@ async def handle_function_call(
         # Step 4.2.1: Enhanced parameter validation
         if function_request.function_name == "query_persona_knowledge":
             query = function_request.parameters.get("query")
-            persona_id = function_request.parameters.get("persona_id")
+            
+            # 🎯 DYNAMIC PERSONA ROUTING: Use persona_id from URL path or parameters
+            # Priority: URL path > function parameters > default fallback
+            target_persona_id = (
+                persona_id or  # From URL path (/function-call/{persona_id})
+                function_request.parameters.get("persona_id") or  # From function parameters
+                "default"  # Fallback for backwards compatibility
+            )
+            
+            logger.info(f"🎯 Processing function call for persona: {target_persona_id} (source: {'url' if persona_id else 'params' if function_request.parameters.get('persona_id') else 'default'})")
             
             # Detailed parameter validation
             if not query:
                 return FunctionCallResponse(
                     result={"error": "Missing required parameter: query", "content": "Please provide a query to search for."},
-                    success=False
-                )
-            
-            if not persona_id:
-                return FunctionCallResponse(
-                    result={"error": "Missing required parameter: persona_id", "content": "Please specify which persona to query."},
                     success=False
                 )
             
@@ -281,7 +286,7 @@ async def handle_function_call(
             
             # Execute query with enhanced error handling
             try:
-                result = await query_persona_knowledge(query, persona_id, db)
+                result = await query_persona_knowledge(query, target_persona_id, db)
                 
                 # Step 4.3.4: Log performance metrics
                 total_latency = (time.time() - start_time) * 1000

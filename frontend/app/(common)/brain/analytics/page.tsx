@@ -45,7 +45,7 @@ export default function BrainAnalyticsPage() {
 
   const fetchTestSuites = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:8000/chat/tests/suites', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -66,7 +66,7 @@ export default function BrainAnalyticsPage() {
     
     setIsRunningTest(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       const response = await fetch(`http://localhost:8000/chat/tests/run/${selectedSuite}`, {
         method: 'POST',
         headers: {
@@ -90,7 +90,7 @@ export default function BrainAnalyticsPage() {
   const runJudgeTest = async () => {
     setIsJudging(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:8000/chat/judge/evaluate', {
         method: 'POST',
         headers: {

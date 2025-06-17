@@ -79,7 +79,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError, token }: Upl
 
       console.log('📤 UploadBox: Making upload request with token:', authToken.substring(0, 20) + '...');
 
-      const response = await fetch('/api/persona/upload', {
+      const response = await fetch('/api/personas/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -155,7 +155,7 @@ export default function UploadBox({ onUploadSuccess, onUploadError, token }: Upl
 
       console.log('📤 UploadBox: Making text upload request with token:', authToken.substring(0, 20) + '...');
 
-      const response = await fetch('/api/persona/upload', {
+      const response = await fetch('/api/personas/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,

@@ -17,6 +17,7 @@ from api.auth import get_current_user, User
 from services.pinecone_client import get_pinecone_client
 from services.chunker import TextChunker
 from services.embedder import Embedder
+from services.agent_service import agent_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -144,6 +145,13 @@ async def upload_persona(
         namespace=namespace,
         content=content,
         source=source_filename or "uploaded_text"
+    )
+    
+    # 🎯 Sprint 7 Phase 2: Auto-create ElevenLabs agent for new persona
+    background_tasks.add_task(
+        auto_create_agent_for_persona,
+        persona_id=persona.id,
+        persona_name=persona.name
     )
     
     return PersonaUploadResponse(
@@ -576,6 +584,48 @@ async def _update_persona_chunk_count(persona_id: str, chunks: list):
         import traceback
         logger.error(traceback.format_exc())
 
+async def auto_create_agent_for_persona(persona_id: str, persona_name: str):
+    """
+    Background task to automatically create ElevenLabs agent for new persona
+    Sprint 7 Phase 2: Automatic Agent Creation
+    """
+    try:
+        # Wait a bit to ensure persona is fully created
+        await asyncio.sleep(2)
+        
+        logger.info(f"🎯 Auto-creating ElevenLabs agent for persona '{persona_name}' ({persona_id})")
+        
+        # Create agent with default settings
+        agent_id = await agent_service.create_agent_for_persona(
+            persona_id=persona_id,
+            persona_name=persona_name,
+            voice_id=None,  # Will use default voice
+            system_prompt=None,  # Will use default prompt
+            db=None  # Will update database internally
+        )
+        
+        if agent_id:
+            # Update persona with agent_id using fresh async session
+            from database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                # Find the existing persona record
+                stmt = select(Persona).where(Persona.id == persona_id)
+                result = await db.execute(stmt)
+                persona = result.scalar_one_or_none()
+                
+                if persona:
+                    persona.elevenlabs_agent_id = agent_id
+                    await db.commit()
+                    logger.info(f"✅ Auto-created agent {agent_id} for persona '{persona_name}'")
+                else:
+                    logger.error(f"Could not find persona {persona_id} to update with agent_id")
+        else:
+            logger.warning(f"⚠️ Failed to auto-create agent for persona '{persona_name}' - ElevenLabs API may be unavailable")
+            
+    except Exception as e:
+        logger.error(f"Auto agent creation failed for persona {persona_id}: {str(e)}")
+        # Don't raise exception to avoid breaking persona creation workflow
+
 @router.get("/templates")
 async def list_available_templates(
     current_user: User = Depends(get_current_user)
@@ -706,6 +756,21 @@ async def delete_persona(
     except Exception as e:
         logger.warning(f"Failed to delete Pinecone namespace {persona.namespace}: {e}")
         # Continue with database deletion even if Pinecone fails
+    
+    # 🎯 Sprint 7 Phase 2: Delete associated ElevenLabs agent
+    if persona.elevenlabs_agent_id:
+        try:
+            success = await agent_service.delete_agent_for_persona(
+                agent_id=persona.elevenlabs_agent_id, 
+                persona_id=persona_id
+            )
+            if success:
+                logger.info(f"✅ Deleted ElevenLabs agent {persona.elevenlabs_agent_id} for persona '{persona.name}'")
+            else:
+                logger.warning(f"⚠️ Failed to delete ElevenLabs agent {persona.elevenlabs_agent_id}")
+        except Exception as e:
+            logger.warning(f"Failed to delete ElevenLabs agent {persona.elevenlabs_agent_id}: {e}")
+            # Continue with database deletion even if agent deletion fails
     
     # Delete from database
     await db.delete(persona)
@@ -1444,6 +1509,24 @@ class CreateFromTemplateResponse(BaseModel):
 class TemplateListResponse(BaseModel):
     templates: List[dict]
 
+# Agent Management Response Models
+class AgentCreateRequest(BaseModel):
+    voice_id: Optional[str] = None
+    system_prompt: Optional[str] = None
+
+class AgentCreateResponse(BaseModel):
+    agent_id: Optional[str]
+    success: bool
+    message: str
+
+class AgentStatusResponse(BaseModel):
+    status: str  # 'active', 'not_found', 'error', 'unavailable'
+    agent_id: Optional[str] = None
+    name: Optional[str] = None
+    voice_id: Optional[str] = None
+    created_at: Optional[str] = None
+    error: Optional[str] = None
+
 @router.get("/{persona_id}/prompts", response_model=PersonaPromptListResponse)
 async def list_persona_prompts(
     persona_id: str,
@@ -1764,3 +1847,204 @@ async def debug_persona_prompts(
         })
     
     return debug_info
+
+# Agent Management Endpoints for Sprint 7 Phase 2
+
+@router.post("/{persona_id}/agent/create", response_model=AgentCreateResponse)
+async def create_agent_for_persona(
+    persona_id: str,
+    request: AgentCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create ElevenLabs agent for persona automatically
+    Sprint 7 Phase 2: Automatic Agent Creation
+    """
+    # Verify persona ownership
+    result = await db.execute(
+        select(Persona).where(
+            Persona.id == persona_id,
+            Persona.user_id == current_user.id
+        )
+    )
+    persona = result.scalar_one_or_none()
+    if not persona:
+        raise HTTPException(404, "Persona not found")
+    
+    try:
+        # Create agent using the agent service
+        agent_id = await agent_service.create_agent_for_persona(
+            persona_id=persona_id,
+            persona_name=persona.name,
+            voice_id=request.voice_id,
+            system_prompt=request.system_prompt,
+            db=db
+        )
+        
+        if agent_id:
+            return AgentCreateResponse(
+                agent_id=agent_id,
+                success=True,
+                message=f"Successfully created ElevenLabs agent for '{persona.name}'"
+            )
+        else:
+            return AgentCreateResponse(
+                agent_id=None,
+                success=False,
+                message="Failed to create agent - check ElevenLabs API configuration"
+            )
+            
+    except Exception as e:
+        logger.error(f"Agent creation failed for persona {persona_id}: {str(e)}")
+        raise HTTPException(500, f"Agent creation failed: {str(e)}")
+
+@router.get("/{persona_id}/agent/status", response_model=AgentStatusResponse)
+async def get_agent_status(
+    persona_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get ElevenLabs agent status for persona
+    Sprint 7 Phase 2: Agent Status Monitoring
+    """
+    # Verify persona ownership
+    result = await db.execute(
+        select(Persona.elevenlabs_agent_id, Persona.name).where(
+            Persona.id == persona_id,
+            Persona.user_id == current_user.id
+        )
+    )
+    persona_data = result.first()
+    if not persona_data:
+        raise HTTPException(404, "Persona not found")
+    
+    agent_id, persona_name = persona_data
+    
+    if not agent_id:
+        return AgentStatusResponse(
+            status="not_configured",
+            message=f"No ElevenLabs agent configured for '{persona_name}'"
+        )
+    
+    try:
+        # Get agent status from ElevenLabs
+        status_info = await agent_service.get_agent_status(agent_id)
+        
+        return AgentStatusResponse(
+            status=status_info.get("status", "unknown"),
+            agent_id=agent_id,
+            name=status_info.get("name"),
+            voice_id=status_info.get("voice_id"),
+            created_at=status_info.get("created_at"),
+            error=status_info.get("error")
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get agent status for {persona_id}: {str(e)}")
+        return AgentStatusResponse(
+            status="error",
+            agent_id=agent_id,
+            error=str(e)
+        )
+
+@router.post("/{persona_id}/agent/recreate", response_model=AgentCreateResponse)
+async def recreate_agent_for_persona(
+    persona_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Recreate ElevenLabs agent if missing or broken
+    Sprint 7 Phase 2: Agent Recovery
+    """
+    # Verify persona ownership
+    result = await db.execute(
+        select(Persona).where(
+            Persona.id == persona_id,
+            Persona.user_id == current_user.id
+        )
+    )
+    persona = result.scalar_one_or_none()
+    if not persona:
+        raise HTTPException(404, "Persona not found")
+    
+    try:
+        # Recreate agent using the agent service
+        agent_id = await agent_service.recreate_agent_if_needed(
+            persona_id=persona_id,
+            persona_name=persona.name,
+            db=db
+        )
+        
+        if agent_id:
+            return AgentCreateResponse(
+                agent_id=agent_id,
+                success=True,
+                message=f"Successfully recreated ElevenLabs agent for '{persona.name}'"
+            )
+        else:
+            return AgentCreateResponse(
+                agent_id=None,
+                success=False,
+                message="Failed to recreate agent - check ElevenLabs API configuration"
+            )
+            
+    except Exception as e:
+        logger.error(f"Agent recreation failed for persona {persona_id}: {str(e)}")
+        raise HTTPException(500, f"Agent recreation failed: {str(e)}")
+
+@router.delete("/{persona_id}/agent")
+async def delete_agent_for_persona(
+    persona_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete ElevenLabs agent for persona
+    Sprint 7 Phase 2: Agent Cleanup
+    """
+    # Verify persona ownership
+    result = await db.execute(
+        select(Persona.elevenlabs_agent_id, Persona.name).where(
+            Persona.id == persona_id,
+            Persona.user_id == current_user.id
+        )
+    )
+    persona_data = result.first()
+    if not persona_data:
+        raise HTTPException(404, "Persona not found")
+    
+    agent_id, persona_name = persona_data
+    
+    if not agent_id:
+        return {"success": True, "message": f"No agent to delete for '{persona_name}'"}
+    
+    try:
+        # Delete agent from ElevenLabs
+        success = await agent_service.delete_agent_for_persona(agent_id, persona_id)
+        
+        if success:
+            # Clear agent_id from database
+            from sqlalchemy import update
+            await db.execute(
+                update(Persona)
+                .where(Persona.id == persona_id)
+                .values(elevenlabs_agent_id=None)
+            )
+            await db.commit()
+            
+            return {
+                "success": True, 
+                "message": f"Successfully deleted ElevenLabs agent for '{persona_name}'"
+            }
+        else:
+            return {
+                "success": False, 
+                "message": f"Failed to delete agent for '{persona_name}'"
+            }
+            
+    except Exception as e:
+        logger.error(f"Agent deletion failed for persona {persona_id}: {str(e)}")
+        raise HTTPException(500, f"Agent deletion failed: {str(e)}")
